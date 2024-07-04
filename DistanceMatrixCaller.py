@@ -15,6 +15,7 @@ class DistanceMatrixException(Exception):
 class GeocodingException(Exception):
     ...
 
+type Accuracy = Literal["fast"] | Literal["accurate"]
 type LngLat = Tuple[float, float]
 
 def lng_lat_to_url_arg(coordinates: LngLat) -> str:
@@ -44,7 +45,7 @@ class DistanceMatrixCaller(object):
         self.accurate = accurate_domain
         self.api_key = api_key
 
-    def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
+    def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> str:
         epoch = datetime(1970, 1, 1)
         arguments = OrderedDict[str, str | int](
             origins = "|".join(map(lng_lat_to_url_arg, origins)),
@@ -55,7 +56,7 @@ class DistanceMatrixCaller(object):
         )
         return self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
 
-    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Literal["fast"] | Literal["accurate"]) -> DataFrame:
+    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
         url = self.distance_matrix_url(origins, destinations, arrival_time, accuracy)
         response = requests.get(url)
         content = json.loads(response.content.decode("utf-8"))
@@ -81,11 +82,11 @@ class DistanceMatrixCaller(object):
             "duration_min": duration_min,
         })
 
-    def geocode_url(self, address: str, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
+    def geocode_url(self, address: str, accuracy: Accuracy) -> str:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
         return self.get_domain(accuracy) + "/maps/api/geocode/json?" + urlencode(arguments)
 
-    def geocode(self, addresses: List[str], accuracy: Literal["fast"] | Literal["accurate"]) -> DataFrame:
+    def geocode(self, addresses: List[str], accuracy: Accuracy) -> DataFrame:
         coordinates: List[LngLat] = []
         for address in addresses:
             url = self.geocode_url(address, accuracy)
@@ -103,7 +104,7 @@ class DistanceMatrixCaller(object):
             "coordinates": coordinates
         })
 
-    def get_domain(self, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
+    def get_domain(self, accuracy: Accuracy) -> str:
         if accuracy == "fast":
             return self.fast
         if accuracy == "accurate":

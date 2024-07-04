@@ -1,4 +1,5 @@
 __pycache__/
 .env
 .venv/
+origins.csv
 request_cache/
