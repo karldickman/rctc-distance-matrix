@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from argparse import ArgumentParser
+from datetime import datetime
 from os import getenv
 from typing import List
 
@@ -17,10 +18,14 @@ def main():
         raise Exception("Required environment variable DISTANCE_MATRIX_API_KEY not set")
     # Arguments
     argument_parser = ArgumentParser()
+    argument_parser.add_argument("travel_date", type = str, help = "The date on which to measure travel time")
     argument_parser.add_argument("address", type = str, nargs = "+", help = "The addresses to geocode")
     argument_parser.add_argument("--url", action = "store_true", help = "Print a Distance Matrix API URL instead of calling it")
     arguments = argument_parser.parse_args()
     addresses: List[str] = arguments.address
+    travel_date = datetime.fromisoformat(arguments.travel_date)
+    arrival_time = datetime(travel_date.year, travel_date.month, travel_date.day, 8)
+    # Analysis
     caller = DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", api_key)
     origins = caller.geocode(addresses, "accurate")
     origin_coordinates: List[LngLat] = origins["coordinates"].to_list()
@@ -48,9 +53,9 @@ def main():
     })
     destination_coordinates: List[LngLat] = destinations["coordinates"].to_list()
     if arguments.url:
-        print(caller.distance_matrix_url(origin_coordinates, destination_coordinates, "accurate"))
+        print(caller.distance_matrix_url(origin_coordinates, destination_coordinates, arrival_time, "accurate"))
     else:
-        distance_matrix = caller.distance_matrix(origin_coordinates, destination_coordinates, "accurate")
+        distance_matrix = caller.distance_matrix(origin_coordinates, destination_coordinates, arrival_time, "accurate")
         origins = origins.rename(columns = {
             "address": "origin_address",
             "coordinates": "origin",

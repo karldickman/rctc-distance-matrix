@@ -1,9 +1,11 @@
 from collections import OrderedDict
+from datetime import datetime
 import json
 from typing import List, Literal, Tuple
 from urllib.parse import urlencode
 
 from pandas import DataFrame
+import numpy as np
 
 import cache_requests as requests
 
@@ -42,16 +44,19 @@ class DistanceMatrixCaller(object):
         self.accurate = accurate_domain
         self.api_key = api_key
 
-    def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]) -> str:
-        arguments = OrderedDict[str, str](
+    def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
+        epoch = datetime(1970, 1, 1)
+        arguments = OrderedDict[str, str | int](
             origins = "|".join(map(lng_lat_to_url_arg, origins)),
             destinations = "|".join(map(lng_lat_to_url_arg, destinations)),
+            traffic_model = "pessimistic",
+            arrival_time = int((arrival_time - epoch).total_seconds()),
             key = self.api_key,
         )
         return self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
 
-    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]) -> DataFrame:
-        url = self.distance_matrix_url(origins, destinations, accuracy)
+    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Literal["fast"] | Literal["accurate"]) -> DataFrame:
+        url = self.distance_matrix_url(origins, destinations, arrival_time, accuracy)
         response = requests.get(url)
         content = json.loads(response.content.decode("utf-8"))
         if content["status"] != "OK":
@@ -66,8 +71,8 @@ class DistanceMatrixCaller(object):
                 status.append(element["status"])
                 origin.append(parse_lat_lng(element["origin"]))
                 destination.append(parse_lat_lng(element["destination"]))
-                distance_mi.append(element["distance"]["value"] / 1609.334)
-                duration_min.append(element["duration"]["value"] / 60)
+                distance_mi.append(element["distance"]["value"] / 1609.334 if element["status"] == "OK" else np.nan)
+                duration_min.append(element["duration_in_traffic"]["value"] / 60 if element["status"] == "OK" else np.nan)
         return DataFrame({
             "status": status,
             "origin": origin,
