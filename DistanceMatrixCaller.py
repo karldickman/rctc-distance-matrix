@@ -48,7 +48,7 @@ class DistanceMatrixCaller(object):
         self.fast = fast_domain
         self.accurate = accurate_domain
         self.api_key = api_key
-        self.max_dimensions = 100
+        self.max_dimensions = 1
 
     def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> str:
         epoch = datetime(1970, 1, 1)
