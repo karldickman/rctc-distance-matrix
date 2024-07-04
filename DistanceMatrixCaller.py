@@ -85,7 +85,7 @@ class DistanceMatrixCaller(object):
             "destination": destination,
             "distance_mi": distance_mi,
             "duration_min": duration_min,
-        }).drop_duplicates()
+        })
         data["speed_mph"] = data["distance_mi"] / data["duration_min"] * 60
         return data
 
@@ -100,7 +100,7 @@ class DistanceMatrixCaller(object):
                 results.append(matrix)
                 start += self.max_dimensions
                 end = min(end + self.max_dimensions, len(origins))
-        return pd.concat(results).drop_duplicates() # type: ignore
+        return self.get_shortest_trip(pd.concat(results)) # type: ignore
 
     def geocode_url(self, address: str, accuracy: Accuracy) -> str:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
@@ -130,3 +130,8 @@ class DistanceMatrixCaller(object):
         if accuracy == "accurate":
             return self.accurate
         raise ValueError("Unsupported accuracy " + accuracy)
+
+    def get_shortest_trip(self, data: DataFrame) -> DataFrame:
+        data = data.groupby(["status", "origin", "destination"]) # type: ignore
+        data = data.agg(duration_min = ("duration_min", "min")) # type: ignore
+        return data.reset_index()

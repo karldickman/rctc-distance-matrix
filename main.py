@@ -37,7 +37,7 @@ def analyze(caller: DistanceMatrixCaller, origins: DataFrame, destinations: Data
         "origin_address": "origin",
         "destination_address": "destination",
     })
-    return distance_matrix
+    return distance_matrix.drop_duplicates()
 
 def main():
     # Environment variables
