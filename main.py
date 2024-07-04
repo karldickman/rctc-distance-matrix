@@ -10,9 +10,11 @@ from pandas import DataFrame, read_csv # type: ignore
 
 from DistanceMatrixCaller import Accuracy, DistanceMatrixCaller, LngLat
 
-def analyze(caller: DistanceMatrixCaller, origin_addresses: List[str], destinations: DataFrame, arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
+def analyze(caller: DistanceMatrixCaller, origins: DataFrame, destinations: DataFrame, arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
     # Geocode addresses
-    origins = caller.geocode(origin_addresses, accuracy)
+    origin_addresses: List[str] = origins["address"].to_list()
+    geocoded_addresses = caller.geocode(origin_addresses, accuracy)
+    origins = origins.merge(geocoded_addresses, how = "left", on = ["address"]) # type: ignore
     # Convert coordinates to LngLat
     origin_coordinates: List[LngLat] = origins["coordinates"].to_list()
     destination_coordinates: List[LngLat] = [(float(row["longitude"]), float(row["latitude"])) for _, row in destinations.iterrows()] # type: ignore
@@ -30,7 +32,8 @@ def analyze(caller: DistanceMatrixCaller, origin_addresses: List[str], destinati
     })
     distance_matrix = origins.merge(distance_matrix, how = "left", on = ["origin"]) # type: ignore
     distance_matrix = distance_matrix.merge(destinations, how = "right", on = ["destination"]) # type: ignore
-    distance_matrix = distance_matrix[["origin_address", "destination_address", "status", "distance_mi", "duration_min"]].rename(columns = {
+    distance_matrix = distance_matrix.drop(columns = ["origin", "destination", "longitude", "latitude"]) # type: ignore
+    distance_matrix = distance_matrix.rename(columns = {
         "origin_address": "origin",
         "destination_address": "destination",
     })
@@ -52,12 +55,11 @@ def main():
     travel_date = datetime.fromisoformat(arguments.travel_date)
     arrival_time = datetime(travel_date.year, travel_date.month, travel_date.day, 8)
     origins = read_csv(arguments.origins)
-    origin_addresses: List[str] = origins["address"].to_list()
     destinations = read_csv(arguments.destinations)
     # Analysis
     caller = DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", api_key)
     destinations.to_csv("destinations.csv", index = False)
-    distance_matrix = analyze(caller, origin_addresses, destinations, arrival_time, "accurate")
+    distance_matrix = analyze(caller, origins, destinations, arrival_time, "accurate")
     if arguments.out is None:
         print(distance_matrix)
     else:
