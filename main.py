@@ -18,7 +18,7 @@ def analyze(caller: DistanceMatrixCaller, origin_addresses: List[str], destinati
     destination_coordinates: List[LngLat] = [(float(row["longitude"]), float(row["latitude"])) for _, row in destinations.iterrows()] # type: ignore
     destinations["coordinates"] = destination_coordinates
     # Call API
-    distance_matrix = caller.distance_matrix(origin_coordinates, destination_coordinates, arrival_time, "accurate")
+    distance_matrix = caller.distance_matrix_chunked(origin_coordinates, destination_coordinates, arrival_time, "accurate")
     # Merge distance matrix with origin and destination
     origins = origins.rename(columns = {
         "address": "origin_address",

@@ -4,6 +4,7 @@ import json
 from typing import List, Literal, Tuple
 from urllib.parse import urlencode
 
+import pandas as pd
 from pandas import DataFrame
 import numpy as np
 
@@ -35,15 +36,19 @@ class DistanceMatrixCaller(object):
     "The domain to call for accurate results."
 
     api_key: str
-    "The API key used to authenticate calls"
+    "The API key used to authenticate calls."
 
     fast: str
     "The domain to call for fast results."
+
+    max_dimensions: int
+    "The maximum number of elements in the origin-destination matrix."
 
     def __init__(self, fast_domain: str, accurate_domain: str, api_key: str):
         self.fast = fast_domain
         self.accurate = accurate_domain
         self.api_key = api_key
+        self.max_dimensions = 100
 
     def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> str:
         epoch = datetime(1970, 1, 1)
@@ -81,6 +86,19 @@ class DistanceMatrixCaller(object):
             "distance_mi": distance_mi,
             "duration_min": duration_min,
         })
+
+    def distance_matrix_chunked(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
+        results: List[DataFrame] = []
+        for destination in destinations:
+            start = 0
+            end = min(self.max_dimensions, len(origins))
+            while start < len(origins):
+                chunk = origins[start:end]
+                matrix = self.distance_matrix(chunk, [destination], arrival_time, accuracy)
+                results.append(matrix)
+                start += self.max_dimensions
+                end = min(end + self.max_dimensions, len(origins))
+        return pd.concat(results) # type: ignore
 
     def geocode_url(self, address: str, accuracy: Accuracy) -> str:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
