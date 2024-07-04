@@ -5,6 +5,11 @@ from urllib.parse import urlencode
 
 import cache_requests as requests
 
+class GeocodingException(Exception):
+    ...
+
+type LngLat = Tuple[float, float]
+
 class DistanceMatrixCaller(object):
     "Makes calls to the Distance Matrix API."
 
@@ -22,7 +27,7 @@ class DistanceMatrixCaller(object):
         self.accurate = accurate_domain
         self.api_key = api_key
 
-    def distance_matrix(self, origin: Tuple[float, float], destination: Tuple[float, float], accuracy: Literal["fast"] | Literal["accurate"]):
+    def distance_matrix(self, origin: LngLat, destination: LngLat, accuracy: Literal["fast"] | Literal["accurate"]):
         arguments = OrderedDict[str, str](
             origins = ",".join(map(str, reversed(origin))),
             destinations = ",".join(map(str, reversed(destination))),
@@ -32,11 +37,18 @@ class DistanceMatrixCaller(object):
         response = requests.get(url)
         return json.loads(response.content.decode("utf-8"))
 
-    def geocode(self, address: str, accuracy: Literal["fast"] | Literal["accurate"]):
+    def geocode(self, address: str, accuracy: Literal["fast"] | Literal["accurate"]) -> LngLat:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
         url = self.get_domain(accuracy) + "/maps/api/geocode/json?" + urlencode(arguments)
         response = requests.get(url)
-        return json.loads(response.content.decode("utf-8"))
+        content = json.loads(response.content.decode("utf-8"))
+        if content["status"] != "OK":
+            raise GeocodingException(content["status"])
+        matches = content["result"]
+        if len(matches) > 1:
+            raise GeocodingException("Too many potential matches")
+        location = content["result"][0]["geometry"]["location"]
+        return location["lng"], location["lat"]
 
     def get_domain(self, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
         if accuracy == "fast":
