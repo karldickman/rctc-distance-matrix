@@ -25,9 +25,25 @@ def main():
     origins = caller.geocode(addresses, "accurate")
     origin_coordinates: List[LngLat] = origins["coordinates"].to_list()
     destinations = DataFrame({
-        "address": ["Sauvie Island"],
+        "address": [
+            "Sauvie Island",
+            "Gresham",
+            "Fairmount",
+            "Sellwood Riverfront Park",
+            "Thurman",
+            "Willamette Boulevard",
+            "Crown-Zellerbach Trail",
+            "Banks-Vernonia Trail",
+        ],
         "coordinates": [
-            (-122.8154507, 45.6292369)
+            (-122.8154507, 45.6292369),
+            (-122.4307401, 45.4969289),
+            (-122.7073407, 45.5006769),
+            (-122.6629027, 45.4657357),
+            (-122.7253299, 45.5391237),
+            (-122.6963084, 45.5662581),
+            (-122.9034284, 45.783716),
+            (-123.1638105, 45.6648253),
         ],
     })
     destination_coordinates: List[LngLat] = destinations["coordinates"].to_list()
