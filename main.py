@@ -46,6 +46,7 @@ def main():
     argument_parser = ArgumentParser()
     argument_parser.add_argument("travel_date", type = str, help = "The date on which to measure travel time")
     argument_parser.add_argument("--origins", type = str, default = "origins.csv", help = "The CSV file containing the origins and their coordinates")
+    argument_parser.add_argument("-o", "--out", type = str, help = "The CSV file to which to write the results")
     argument_parser.add_argument("--destinations", type = str, default = "destinations.csv", help = "The CSV file containing the destinations and their coordinates")
     arguments = argument_parser.parse_args()
     travel_date = datetime.fromisoformat(arguments.travel_date)
@@ -57,7 +58,10 @@ def main():
     caller = DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", api_key)
     destinations.to_csv("destinations.csv", index = False)
     distance_matrix = analyze(caller, origin_addresses, destinations, arrival_time, "accurate")
-    print(distance_matrix)
+    if arguments.out is None:
+        print(distance_matrix)
+    else:
+        distance_matrix.to_csv(arguments.out, index = False)
 
 if __name__ == "__main__":
     main()
