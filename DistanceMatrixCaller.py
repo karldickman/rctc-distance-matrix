@@ -79,13 +79,15 @@ class DistanceMatrixCaller(object):
                 destination.append(parse_lat_lng(element["destination"]))
                 distance_mi.append(element["distance"]["value"] / 1609.334 if element["status"] == "OK" else np.nan)
                 duration_min.append(element["duration_in_traffic"]["value"] / 60 if element["status"] == "OK" else np.nan)
-        return DataFrame({
+        data = DataFrame({
             "status": status,
             "origin": origin,
             "destination": destination,
             "distance_mi": distance_mi,
             "duration_min": duration_min,
-        })
+        }).drop_duplicates()
+        data["speed_mph"] = data["distance_mi"] / data["duration_min"] * 60
+        return data
 
     def distance_matrix_chunked(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
         results: List[DataFrame] = []
@@ -98,7 +100,7 @@ class DistanceMatrixCaller(object):
                 results.append(matrix)
                 start += self.max_dimensions
                 end = min(end + self.max_dimensions, len(origins))
-        return pd.concat(results) # type: ignore
+        return pd.concat(results).drop_duplicates() # type: ignore
 
     def geocode_url(self, address: str, accuracy: Accuracy) -> str:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
