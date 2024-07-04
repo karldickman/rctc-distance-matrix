@@ -78,7 +78,7 @@ class DistanceMatrixCaller(object):
                 origin.append(parse_lat_lng(element["origin"]))
                 destination.append(parse_lat_lng(element["destination"]))
                 distance_mi.append(element["distance"]["value"] / 1609.334 if element["status"] == "OK" else np.nan)
-                duration_min.append(element["duration_in_traffic"]["value"] / 60 if element["status"] == "OK" else np.nan)
+                duration_min.append(element["duration_in_traffic"]["value"] / 60 * 16 / 14 if element["status"] == "OK" else np.nan)
         data = DataFrame({
             "status": status,
             "origin": origin,
