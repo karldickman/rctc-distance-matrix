@@ -30,28 +30,37 @@ class DistanceMatrixCaller(object):
         self.accurate = accurate_domain
         self.api_key = api_key
 
-    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]):
+    def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]) -> str:
         arguments = OrderedDict[str, str](
             origins = "|".join(map(lng_lat_to_url_arg, origins)),
             destinations = "|".join(map(lng_lat_to_url_arg, destinations)),
             key = self.api_key,
         )
-        url = self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
+        return self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
+
+    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]):
+        url = self.distance_matrix_url(origins, destinations, accuracy)
         response = requests.get(url)
         return json.loads(response.content.decode("utf-8"))
 
-    def geocode(self, address: str, accuracy: Literal["fast"] | Literal["accurate"]) -> LngLat:
+    def geocode_url(self, address: str, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
         arguments = OrderedDict[str, str](address = address, key = self.api_key)
-        url = self.get_domain(accuracy) + "/maps/api/geocode/json?" + urlencode(arguments)
-        response = requests.get(url)
-        content = json.loads(response.content.decode("utf-8"))
-        if content["status"] != "OK":
-            raise GeocodingException(content["status"])
-        matches = content["result"]
-        if len(matches) > 1:
-            raise GeocodingException("Too many potential matches")
-        location = content["result"][0]["geometry"]["location"]
-        return location["lng"], location["lat"]
+        return self.get_domain(accuracy) + "/maps/api/geocode/json?" + urlencode(arguments)
+
+    def geocode(self, addresses: List[str], accuracy: Literal["fast"] | Literal["accurate"]) -> List[LngLat]:
+        coordinates: List[LngLat] = []
+        for address in addresses:
+            url = self.geocode_url(address, accuracy)
+            response = requests.get(url)
+            content = json.loads(response.content.decode("utf-8"))
+            if content["status"] != "OK":
+                raise GeocodingException(content["status"])
+            matches = content["result"]
+            if len(matches) > 1:
+                raise GeocodingException("Too many potential matches")
+            location = content["result"][0]["geometry"]["location"]
+            coordinates.append((location["lng"], location["lat"]))
+        return coordinates
 
     def get_domain(self, accuracy: Literal["fast"] | Literal["accurate"]) -> str:
         if accuracy == "fast":
