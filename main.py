@@ -18,7 +18,9 @@ def main():
     argument_parser.add_argument("address", type = str, help = "The address to geocode")
     arguments = argument_parser.parse_args()
     caller = DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", api_key)
-    print(caller.geocode(arguments.address, "accurate"))
+    origin = caller.geocode(arguments.address, "accurate")
+    destination = -122.8154507, 45.6292369
+    print(caller.distance_matrix([origin], [destination], "accurate"))
 
 if __name__ == "__main__":
     main()

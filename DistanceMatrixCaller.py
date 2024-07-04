@@ -1,6 +1,6 @@
 from collections import OrderedDict
 import json
-from typing import Literal, Tuple
+from typing import List, Literal, Tuple
 from urllib.parse import urlencode
 
 import cache_requests as requests
@@ -9,6 +9,9 @@ class GeocodingException(Exception):
     ...
 
 type LngLat = Tuple[float, float]
+
+def lng_lat_to_url_arg(coordinates: LngLat) -> str:
+    return ",".join(map(str, reversed(coordinates)))
 
 class DistanceMatrixCaller(object):
     "Makes calls to the Distance Matrix API."
@@ -27,10 +30,10 @@ class DistanceMatrixCaller(object):
         self.accurate = accurate_domain
         self.api_key = api_key
 
-    def distance_matrix(self, origin: LngLat, destination: LngLat, accuracy: Literal["fast"] | Literal["accurate"]):
+    def distance_matrix(self, origins: List[LngLat], destinations: List[LngLat], accuracy: Literal["fast"] | Literal["accurate"]):
         arguments = OrderedDict[str, str](
-            origins = ",".join(map(str, reversed(origin))),
-            destinations = ",".join(map(str, reversed(destination))),
+            origins = "|".join(map(lng_lat_to_url_arg, origins)),
+            destinations = "|".join(map(lng_lat_to_url_arg, destinations)),
             key = self.api_key,
         )
         url = self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
