@@ -10,18 +10,22 @@ main <- function(args = c()) {
   distance.matrix.file.path = args[[1]]
   distance.matrix <- read_csv(distance.matrix.file.path)
   distance.matrix |>
-    filter(status == "OK" & destination != "Willamette Boulevard") |>
+    filter(status == "OK") |>
     ggplot(aes(x = duration_min)) +
     geom_histogram(binwidth = 5) +
     facet_wrap(~factor(destination, levels = c(
+      "McKenzie Building",
+      "Willamette Boulevard",
       "Fairmount",
-      "Thurman",
       "Sellwood Riverfront Park",
+      "Thurman",
+      "Germantown",
+      "Lake Oswego",
       "Sauvie Island",
       "Gresham",
       "Banks-Vernonia Trail",
       "Crown-Zellerbach Trail"
-    )), ncol = 1)
+    )))
 }
 
 main("distance_matrix.csv")
