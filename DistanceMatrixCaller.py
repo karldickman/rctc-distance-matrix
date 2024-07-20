@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from datetime import datetime
 import json
+from os import getenv
 from typing import List, Literal, Tuple
 from urllib.parse import urlencode
 
@@ -32,22 +33,26 @@ def parse_lat_lng(text: str) -> LngLat:
 class DistanceMatrixCaller(object):
     "Makes calls to the Distance Matrix API."
 
-    accurate: str
+    accurate_domain: str
     "The domain to call for accurate results."
 
-    api_key: str
-    "The API key used to authenticate calls."
+    distance_matrix_api_keys: dict[Accuracy, str]
+    "The API Keys used to authenticate distance matrix calls."
 
-    fast: str
+    fast_domain: str
     "The domain to call for fast results."
+
+    geocode_api_keys: dict[Accuracy, str]
+    "The API Keys used to authenticate geocode calls."
 
     max_dimensions: int
     "The maximum number of elements in the origin-destination matrix."
 
-    def __init__(self, fast_domain: str, accurate_domain: str, api_key: str):
-        self.fast = fast_domain
-        self.accurate = accurate_domain
-        self.api_key = api_key
+    def __init__(self, fast_domain: str, accurate_domain: str, distance_matrix_api_keys: dict[Accuracy, str], geocode_api_keys: dict[Accuracy, str]):
+        self.fast_domain = fast_domain
+        self.accurate_domain = accurate_domain
+        self.distance_matrix_api_keys = distance_matrix_api_keys
+        self.geocode_api_keys = geocode_api_keys
         self.max_dimensions = 1
 
     def distance_matrix_url(self, origins: List[LngLat], destinations: List[LngLat], arrival_time: datetime, accuracy: Accuracy) -> str:
@@ -57,7 +62,7 @@ class DistanceMatrixCaller(object):
             destinations = "|".join(map(lng_lat_to_url_arg, destinations)),
             traffic_model = "pessimistic",
             arrival_time = int((arrival_time - epoch).total_seconds()),
-            key = self.api_key,
+            key = self.distance_matrix_api_keys[accuracy],
         )
         return self.get_domain(accuracy) + "/maps/api/distancematrix/json?" + urlencode(arguments)
 
@@ -103,7 +108,7 @@ class DistanceMatrixCaller(object):
         return self.get_shortest_trip(pd.concat(results)) # type: ignore
 
     def geocode_url(self, address: str, accuracy: Accuracy) -> str:
-        arguments = OrderedDict[str, str](address = address, key = self.api_key)
+        arguments = OrderedDict[str, str](address = address, key = self.geocode_api_keys[accuracy])
         return self.get_domain(accuracy) + "/maps/api/geocode/json?" + urlencode(arguments)
 
     def geocode(self, addresses: List[str], accuracy: Accuracy) -> DataFrame:
@@ -126,12 +131,31 @@ class DistanceMatrixCaller(object):
 
     def get_domain(self, accuracy: Accuracy) -> str:
         if accuracy == "fast":
-            return self.fast
+            return self.fast_domain
         if accuracy == "accurate":
-            return self.accurate
+            return self.accurate_domain
         raise ValueError("Unsupported accuracy " + accuracy)
 
     def get_shortest_trip(self, data: DataFrame) -> DataFrame:
         data = data.groupby(["status", "origin", "destination"]) # type: ignore
         data = data.agg(duration_min = ("duration_min", "min")) # type: ignore
         return data.reset_index()
+
+def getEnvOrRaise(name: str) -> str:
+    "Look up an environment variable.  If it does not exist, raise an Exception."
+    value = getenv(name)
+    if value is None:
+        raise Exception(f"Required environment variable {name} not set")
+    return value
+
+def distance_matrix_caller_from_env() -> DistanceMatrixCaller:
+    "Create a new DistanceMatrixCaller from the current environment variables."
+    distance_matrix_api_keys: dict[Accuracy, str] = {
+        "accurate": getEnvOrRaise("ACCURATE_GEOCODING_API_KEY"),
+        "fast": getEnvOrRaise("FAST_GEOCODING_API_KEY"),
+    }
+    geocode_api_keys: dict[Accuracy, str] = {
+        "accurate": getEnvOrRaise("ACCURATE_DISTANCE_MATRIX_API_KEY"),
+        "fast": getEnvOrRaise("FAST_DISTANCE_MATRIX_API_KEY"),
+    }
+    return DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", distance_matrix_api_keys, geocode_api_keys)

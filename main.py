@@ -2,13 +2,12 @@
 
 from argparse import ArgumentParser
 from datetime import datetime
-from os import getenv
 from typing import List
 
 from dotenv import load_dotenv
 from pandas import DataFrame, read_csv # type: ignore
 
-from DistanceMatrixCaller import Accuracy, DistanceMatrixCaller, LngLat
+from DistanceMatrixCaller import Accuracy, distance_matrix_caller_from_env, DistanceMatrixCaller, LngLat
 
 def analyze(caller: DistanceMatrixCaller, origins: DataFrame, destinations: DataFrame, arrival_time: datetime, accuracy: Accuracy) -> DataFrame:
     # Geocode addresses
@@ -40,14 +39,10 @@ def analyze(caller: DistanceMatrixCaller, origins: DataFrame, destinations: Data
     return distance_matrix.drop_duplicates()
 
 def main():
-    # Environment variables
     load_dotenv()
-    api_key = getenv("DISTANCE_MATRIX_API_KEY")
-    if api_key is None:
-        raise Exception("Required environment variable DISTANCE_MATRIX_API_KEY not set")
     # Arguments
     argument_parser = ArgumentParser()
-    argument_parser.add_argument("travel_date", type = str, help = "The date on which to measure travel time")
+    argument_parser.add_argument("travel_date", type = str, default = "2024-07-13", help = "The date on which to measure travel time")
     argument_parser.add_argument("addresses", nargs = "*")
     argument_parser.add_argument("--origins", type = str, default = "origins.csv", help = "The CSV file containing the origins and their coordinates")
     argument_parser.add_argument("-o", "--out", type = str, help = "The CSV file to which to write the results")
@@ -61,7 +56,7 @@ def main():
         origins = read_csv(arguments.origins)
     destinations = read_csv(arguments.destinations)
     # Analysis
-    caller = DistanceMatrixCaller("https://api-v2.distancematrix.ai", "https://api.distancematrix.ai", api_key)
+    caller = distance_matrix_caller_from_env()
     destinations.to_csv("destinations.csv", index = False)
     distance_matrix = analyze(caller, origins, destinations, arrival_time, "accurate")
     if arguments.out is None:
