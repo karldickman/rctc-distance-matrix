@@ -2,7 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(readr)
 
-read.data <- function(distance.matrix.file.path) {
+read.distance.matrix <- function(distance.matrix.file.path) {
   read_csv(distance.matrix.file.path) |>
     filter(status == "OK")
 }
@@ -39,10 +39,8 @@ main <- function(args = c()) {
     return()
   }
   distance.matrix.file.path = args[[1]]
-  read.data(distance.matrix.file.path) |>
+  read.distance.matrix(distance.matrix.file.path) |>
     distance.matrix.box.plot() +
     #distance.matrix.histogram() +
     ggtitle(label = "Distribution of travel times to selected run locations")
 }
-
-main("distance_matrix.csv")
