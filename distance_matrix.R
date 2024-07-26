@@ -1,6 +1,8 @@
 library(dplyr)
 library(ggplot2)
 library(readr)
+library(scales)
+library(stringr)
 
 read.distance.matrix <- function(distance.matrix.file.path) {
   read_csv(distance.matrix.file.path) |>
@@ -10,9 +12,9 @@ read.distance.matrix <- function(distance.matrix.file.path) {
 distance.matrix.box.plot <- function (data) {
   ggplot(data, aes(x = reorder(destination, duration_min), y = duration_min)) +
     geom_boxplot() +
+    scale_x_discrete(labels = label_wrap(10)) +
     xlab("Destination") +
-    ylab("Median travel duration (minutes)") +
-    theme(axis.text.x = element_text(angle = -45, hjust = 0))
+    ylab("Median travel duration (minutes)")
 }
 
 distance.matrix.histogram <- function (data) {
@@ -40,6 +42,7 @@ main <- function(args = c()) {
   }
   distance.matrix.file.path = args[[1]]
   read.distance.matrix(distance.matrix.file.path) |>
+    mutate(across("destination", str_replace, "-", " ")) |>
     distance.matrix.box.plot() +
     #distance.matrix.histogram() +
     ggtitle(label = "Distribution of travel times to selected run locations")
