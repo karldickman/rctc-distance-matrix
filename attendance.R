@@ -54,6 +54,7 @@ main <- function (args = c()) {
     ggplot(aes(x = duration_min, y = attendance, col = Type)) +
     geom_point() +
     geom_smooth(method = "lm") +
+    ylim(0, NA) +
     ggtitle("Relationship between proximity and attendance") +
     xlab("Median travel duration (minutes)") +
     ylab("Total teammates attending")
