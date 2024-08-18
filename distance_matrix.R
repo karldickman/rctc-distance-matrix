@@ -35,10 +35,23 @@ distance.matrix.histogram <- function (data) {
   )))
 }
 
+usage <- function (error = NULL) {
+  if (!is.null(error)) {
+    cat(error, "\n")
+  }
+  cat("distance_matrix.R DISTANCE_MATRIX_PATH [OPTIONS]\n")
+  cat("    -h, --help  Display this message and exit\n")
+  opt <- options(show.error.messages = FALSE)
+  on.exit(options(opt))
+  stop()
+}
+
 main <- function(args = c()) {
+  if ('-h' %in% args | '--help' %in% args) {
+    usage()
+  }
   if (length(args) < 1) {
-    cat("Missing required argument DISTANCE_MATRIX_PATH\n")
-    return()
+    usage("Missing required argument DISTANCE_MATRIX_PATH\n")
   }
   distance.matrix.file.path = args[[1]]
   read.distance.matrix(distance.matrix.file.path) |>
