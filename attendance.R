@@ -24,7 +24,10 @@ read.attendance <- function (file.path) {
     filter(`Deficit/Surplus` != "#N/A") |>
     filter(Event == "Long Run") |>
     filter(is.na(`Actual?`)) |>
-    transmute(date = Date, location = Location, Type = coalesce(Note, "Ordinary"))
+    transmute(
+      date = Date,
+      location = ifelse(Location == "The Stacks", "Willamette Boulevard", Location),
+      Type = coalesce(Note, "Ordinary"))
 }
 
 main <- function (args = c()) {
@@ -46,7 +49,7 @@ main <- function (args = c()) {
     group_by(destination) |>
     summarise(duration_min = median(duration_min, na.rm = TRUE)) |>
     rename(location = destination)
-  proximity.attendance.relationship <- merge(total.attendance, median.travel.duration, how = "left")
+  proximity.attendance.relationship <- left_join(total.attendance, median.travel.duration)
   proximity.attendance.relationship |>
     ggplot(aes(x = duration_min, y = attendance, col = Type)) +
     geom_point() +
