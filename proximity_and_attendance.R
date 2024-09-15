@@ -2,25 +2,11 @@ library(dplyr)
 library(googlesheets4)
 library(readr)
 
+source("attendance.R")
 source("distance_matrix.R")
 
-fetch.atthendance <- function (file.path) {
-  if (file.exists(file.path)) {
-    return()
-  }
-  columns <- data.frame(
-    name = c("Attendee", "Actual?", "Event", "Date", "Location", "Note", "Deficit/Surplus", "Last Event"),
-    type = c("c",        "c",       "c",     "D",    "c",        "c",    "d",               "D")
-  )
-  read_sheet(
-    "https://docs.google.com/spreadsheets/d/18VXvuxgnlPdGizA4prGbejZdAbWws7DwK_CE-u_qdzA/",
-    col_types = paste(columns$type, collapse = "")
-  ) |>
-    write.csv(file.path, row.names = FALSE)
-}
-
-read.attendance <- function (file.path) {
-  read_csv(file.path) |>
+process.attendance <- function (attendance) {
+  attendance |>
     filter(`Deficit/Surplus` != "#N/A") |>
     filter(Event == "Long Run") |>
     filter(is.na(`Actual?`)) |>
@@ -38,8 +24,8 @@ main <- function (args = c()) {
   # Read files
   attendance.file.path <- args[[1]]
   distance.matrix.file.path <- args[[2]]
-  fetch.atthendance(attendance.file.path)
-  attendance <- read.attendance(attendance.file.path)
+  attendance <- fetch.atthendance(attendance.file.path) |>
+    process.attendance()
   distance.matrix <- read.distance.matrix(distance.matrix.file.path)
   # Analysis
   total.attendance <- attendance |>
