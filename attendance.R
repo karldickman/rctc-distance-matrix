@@ -50,8 +50,15 @@ process.attendance <- function (data, roster) {
     filter(is.na(`Actual?`))
   totals <- data |>
     group_by(Attendee) |>
-    summarise(n = n(), last_event = max(Date), effective_date_joined = min(effective_date_joined)) |>
-    arrange(-as.double(effective_date_joined), n, last_event)
+    summarise(
+      total_attended = n(),
+      last_event = max(Date),
+      effective_date_joined = min(effective_date_joined),
+      date_left = max(date_left)) |>
+    mutate(effective_date_left = as.Date(ifelse(is.na(date_left), Sys.Date(), date_left))) |>
+    mutate(days_of_membership = as.double(effective_date_left - effective_date_joined) + 1) |>
+    mutate(attendance_per_year = total_attended / days_of_membership * 365.24) |>
+    arrange(-as.double(effective_date_joined), attendance_per_year, last_event)
   data |>
     left_join(totals) |>
     mutate(Attendee = factor(Attendee, levels = totals$Attendee), membership_status = ifelse(is.na(date_left), "Current member", "Departed"))
