@@ -24,7 +24,7 @@ main <- function (args = c()) {
   # Read files
   attendance.file.path <- args[[1]]
   distance.matrix.file.path <- args[[2]]
-  attendance <- fetch.atthendance(attendance.file.path) |>
+  attendance <- fetch.attendance(attendance.file.path) |>
     process.attendance()
   distance.matrix <- read.distance.matrix(distance.matrix.file.path)
   # Analysis
