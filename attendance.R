@@ -37,7 +37,7 @@ process.attendance <- function (data, roster) {
   policy.date <- as.Date("2023-09-04")
   roster <- roster |>
     group_by(Name) |>
-    summarise(date_joined = min(`Date joined`)) |>
+    summarise(date_joined = min(`Date joined`), date_left = max(`Date left`)) |>
     mutate(effective_date_joined = as.Date(ifelse(
       date_joined < policy.date,
       policy.date,
@@ -54,13 +54,20 @@ process.attendance <- function (data, roster) {
     arrange(-as.double(effective_date_joined), n, last_event)
   data |>
     left_join(totals) |>
-    mutate(Attendee = factor(Attendee, levels = totals$Attendee))
+    mutate(Attendee = factor(Attendee, levels = totals$Attendee), membership_status = ifelse(is.na(date_left), "Current member", "Departed"))
 }
 
 plot.attendance <- function (data) {
-  ggplot(data, aes(Date, Attendee)) +
+  ggplot(data, aes(Date, Attendee, fill = membership_status)) +
     geom_tile() +
-    theme(axis.title.y = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+    scale_fill_manual(values = c("black", "red")) +
+    theme(
+      axis.title.y = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      legend.position = "bottom",
+      legend.title = element_blank()
+    )
 }
 
 main <- function (argv = c()) {
