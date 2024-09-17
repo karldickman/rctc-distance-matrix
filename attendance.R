@@ -47,6 +47,7 @@ process.attendance <- function (data, roster) {
     select(!c(`Deficit/Surplus`, `Last Event`)) |>
     inner_join(roster, by = join_by(Attendee == Name)) |>
     filter(Date >= policy.date & Date >= date_joined) |>
+    filter(policy.date < date_left | is.na(date_left)) |>
     filter(is.na(`Actual?`))
   totals <- data |>
     group_by(Attendee) |>
