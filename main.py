@@ -57,7 +57,6 @@ def main():
     destinations = read_csv(arguments.destinations)
     # Analysis
     caller = distance_matrix_caller_from_env()
-    destinations.to_csv("destinations.csv", index = False)
     distance_matrix = analyze(caller, origins, destinations, arrival_time, "accurate")
     if arguments.out is None:
         print(distance_matrix)
