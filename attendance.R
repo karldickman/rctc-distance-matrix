@@ -40,21 +40,20 @@ fetch.roster <- function (cache = FALSE) {
   data
 }
 
-process.attendance <- function (data, roster) {
-  policy.date <- as.Date("2023-09-04")
+process.attendance <- function (data, roster, from) {
   roster <- roster |>
     group_by(Name) |>
     summarise(date_joined = min(`Date joined`), date_left = max(`Date left`)) |>
     mutate(effective_date_joined = as.Date(ifelse(
-      date_joined < policy.date,
-      policy.date,
+      date_joined < from,
+      from,
       date_joined
     )))
   data <- data |>
     select(!c(`Deficit/Surplus`, `Last Event`)) |>
     inner_join(roster, by = join_by(Attendee == Name)) |>
-    filter(Date >= policy.date & Date >= date_joined) |>
-    filter(policy.date < date_left | is.na(date_left)) |>
+    filter(Date >= from & Date >= date_joined) |>
+    filter(from < date_left | is.na(date_left)) |>
     filter(is.na(`Actual?`))
   totals <- data |>
     group_by(Attendee) |>
@@ -72,16 +71,44 @@ process.attendance <- function (data, roster) {
     mutate(Attendee = factor(Attendee, levels = totals$Attendee), membership_status = ifelse(is.na(date_left), "Current member", "Departed"))
 }
 
-plot.attendance <- function (data) {
+dates.not.on.team <- function (roster, from, to) {
+  names <- c()
+  dates <- c()
+  # Had not joined team
+  had.not.joined.team <- roster |> filter(`Date joined` >= from)
+  for (i in 1:nrow(had.not.joined.team)) {
+    row <- had.not.joined.team[i,]
+    dates.not.joined <- from:(row$`Date joined` - 1)
+    for (date in dates.not.joined) {
+      names <- c(names, row$Name)
+      dates <- c(dates, date)
+    }
+  }
+  # Left team
+  left.team <- roster |> filter(!is.na(`Date left`))
+  for (i in 1:nrow(left.team)) {
+    row <- left.team[i,]
+    dates.left <- row$`Date left`:to
+    for (date in dates.left) {
+      names <- c(names, row$Name)
+      dates <- c(dates, date)
+    }
+  }
+  # Combine joined and left
+  dates <- as.Date(dates)
+  tibble(Attendee = names, Date = dates)
+}
+
+plot.attendance <- function (data, from, to) {
   ggplot(data, aes(Date, Attendee, fill = membership_status)) +
     geom_tile() +
     scale_x_date(
-      limits = c(as.Date("2023-09-04"), Sys.Date() + 1),
+      limits = c(from, to + 1),
       expand = c(0, 0),
       date_breaks = "1 month",
       date_labels = "%Y-%m"
     ) +
-    scale_fill_manual(values = c("black", "red")) +
+    scale_fill_manual(values = c("black", "red"), na.value = "white") +
     theme(
       axis.title.y = element_blank(),
       axis.text.y = element_blank(),
@@ -101,9 +128,13 @@ main <- function (argv = c()) {
   if ("-h" %in% argv | "--help" %in% argv) {
     usage()
   }
-  attendance <- fetch.attendance("--cache" %in% argv)
   roster <- fetch.roster("--cache" %in% argv)
+  from <- as.Date("2023-09-04")
+  to <- Sys.Date()
+  not.on.team <- dates.not.on.team(roster, from, to)
+  attendance <- fetch.attendance("--cache" %in% argv) |>
+    process.attendance(roster, from) |>
+    bind_rows(not.on.team)
   attendance |>
-    process.attendance(roster) |>
-    plot.attendance()
+    plot.attendance(from, to)
 }
