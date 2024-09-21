@@ -75,6 +75,12 @@ process.attendance <- function (data, roster) {
 plot.attendance <- function (data) {
   ggplot(data, aes(Date, Attendee, fill = membership_status)) +
     geom_tile() +
+    scale_x_date(
+      limits = c(as.Date("2023-09-04"), Sys.Date() + 1),
+      expand = c(0, 0),
+      date_breaks = "1 month",
+      date_labels = "%Y-%m"
+    ) +
     scale_fill_manual(values = c("black", "red")) +
     theme(
       axis.title.y = element_blank(),
