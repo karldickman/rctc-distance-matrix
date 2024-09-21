@@ -3,8 +3,9 @@ library(ggplot2)
 library(googlesheets4)
 library(readr)
 
-fetch.attendance <- function (file.path) {
-  if (file.exists(file.path)) {
+fetch.attendance <- function (cache = FALSE) {
+  file.path <- "attendance.csv"
+  if (cache & file.exists(file.path)) {
     return(read_csv(file.path))
   }
   columns <- data.frame(
@@ -20,8 +21,9 @@ fetch.attendance <- function (file.path) {
   data
 }
 
-fetch.roster <- function (file.path) {
-  if (file.exists(file.path)) {
+fetch.roster <- function (cache = FALSE) {
+  file.path <- "roster.csv"
+  if (cache & file.exists(file.path)) {
     return(read_csv(file.path))
   }
   data <- read_sheet(
@@ -78,15 +80,18 @@ plot.attendance <- function (data) {
     )
 }
 
+usage <- function () {
+  cat("attendance.R [OPTIONS]\n")
+  cat("    --cache     Use cached files")
+  cat("    -h, --help  Display this message and exit")
+}
+
 main <- function (argv = c()) {
-  if (length(argv) < 2) {
-    cat("Missing required arguments\n")
-    return()
+  if ("-h" %in% argv | "--help" %in% argv) {
+    usage()
   }
-  attendance.file.path <- argv[[1]]
-  roster.file.path <- argv[[2]]
-  attendance <- fetch.attendance(attendance.file.path)
-  roster <- fetch.roster(roster.file.path)
+  attendance <- fetch.attendance("--cache" %in% argv)
+  roster <- fetch.roster("--cache" %in% argv)
   attendance |>
     process.attendance(roster) |>
     plot.attendance()
