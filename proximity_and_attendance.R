@@ -17,14 +17,13 @@ process.attendance <- function (attendance) {
 }
 
 main <- function (args = c()) {
-  if (length(args) < 2) {
+  if (length(args) < 1) {
     cat("Missing required arguments\n")
     return()
   }
   # Read files
-  attendance.file.path <- args[[1]]
-  distance.matrix.file.path <- args[[2]]
-  attendance <- fetch.attendance(attendance.file.path) |>
+  distance.matrix.file.path <- args[[1]]
+  attendance <- fetch.attendance() |>
     process.attendance()
   distance.matrix <- read.distance.matrix(distance.matrix.file.path)
   # Analysis
@@ -45,5 +44,3 @@ main <- function (args = c()) {
     xlab("Median travel duration (minutes)") +
     ylab("Total teammates attending")
 }
-
-main(c("attendance.csv", "distance_matrix.csv"))
