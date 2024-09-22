@@ -37,7 +37,7 @@ main <- function (args = c()) {
   proximity.attendance.relationship <- left_join(total.attendance, median.travel.duration)
   proximity.attendance.relationship |>
     ggplot(aes(x = duration_min, y = attendance, col = Type)) +
-    geom_jitter(height = 0) +
+    geom_jitter(height = 0, width = 0.5) +
     geom_smooth(method = "lm") +
     ylim(0, NA) +
     ggtitle("Relationship between proximity and attendance") +
