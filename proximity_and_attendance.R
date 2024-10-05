@@ -13,7 +13,9 @@ process.attendance <- function (attendance) {
     transmute(
       date = Date,
       location = ifelse(Location == "The Stacks", "Willamette Boulevard", Location),
-      Type = coalesce(Note, "Ordinary"))
+      Type = ifelse(Note == "Big Fun Long Run", Note, NA)
+    ) |>
+    mutate(Type = coalesce(Type, "Ordinary"))
 }
 
 main <- function (args = c()) {
