@@ -18,10 +18,21 @@ process.attendance <- function (attendance) {
     mutate(Type = coalesce(Type, "Ordinary"))
 }
 
+usage <- function (error = NA) {
+  if (!is.na(error)) {
+    cat(error, "\n")
+  }
+  cat("proximity_and_attendance.R DISTANCE_MATRIX_FILE_PATH\n")
+  cat("    -h, --help  Display this message and exit")
+  stop()
+}
+
 main <- function (args = c()) {
+  if ('-h' %in% args | '--help' %in% args) {
+    usage()
+  }
   if (length(args) < 1) {
-    cat("Missing required arguments\n")
-    return()
+    usage("Missing required arguments")
   }
   # Read files
   distance.matrix.file.path <- args[[1]]
