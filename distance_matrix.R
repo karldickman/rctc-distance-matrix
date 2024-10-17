@@ -11,7 +11,7 @@ read.distance.matrix <- function(distance.matrix.file.path) {
 distance.matrix.box.plot <- function (data) {
   ggplot(data, aes(x = destination, y = duration_min)) +
     geom_boxplot() +
-    scale_x_discrete(labels = label_wrap(10)) +
+    scale_x_discrete(labels = label_wrap(10), guide = guide_axis(n.dodge = 2)) +
     xlab("Destination") +
     ylab("Median travel duration (minutes)")
 }
