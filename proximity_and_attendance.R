@@ -55,5 +55,6 @@ main <- function (args = c()) {
     ylim(0, NA) +
     ggtitle("Relationship between proximity and attendance") +
     xlab("Median travel duration (minutes)") +
-    ylab("Total teammates attending")
+    ylab("Total teammates attending") +
+    theme(legend.position="bottom")
 }
