@@ -156,15 +156,32 @@ plot.attendance <- function (data, from, to) {
 usage <- function () {
   cat("attendance.R [OPTIONS]\n")
   cat("    --cache     Use cached files")
+  cat("    --from      Show data from this data")
   cat("    -h, --help  Display this message and exit")
+}
+
+parse_args <- function (argv) {
+  from <- as.Date("2024-01-01")
+  for (i in 1:length(argv)) {
+    if (argv[[i]] == "--from") {
+      from = as.Date(argv[[i + 1]])
+    } else if (startsWith(argv[[i]], "--from=")) {
+      from = as.Date(gsub("--from=", "", argv[[i]]))
+    }
+  }
+  list(
+    cache = "--cache" %in% argv,
+    from = from
+  )
 }
 
 main <- function (argv = c()) {
   if ("-h" %in% argv | "--help" %in% argv) {
     usage()
   }
-  roster <- fetch.roster("--cache" %in% argv)
-  from <- as.Date("2023-09-04")
+  args <- parse_args(argv)
+  roster <- fetch.roster(args$cache)
+  from <- args$from
   to <- Sys.Date()
   not.on.team <- dates.not.on.team(roster, from, to)
   attendance <- fetch.attendance("--cache" %in% argv) |>
