@@ -7,6 +7,7 @@ source("distance_matrix.R")
 
 process.attendance <- function (attendance) {
   attendance |>
+    filter(Date >= as.Date("2024-01-01")) |>
     filter(Membership == "Present") |>
     filter(Event == "Long Run") |>
     filter(is.na(`Actual?`)) |>
