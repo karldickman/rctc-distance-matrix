@@ -7,7 +7,7 @@ source("distance_matrix.R")
 
 process.attendance <- function (attendance) {
   attendance |>
-    filter(`Deficit/Surplus` != "#N/A") |>
+    filter(Membership == "Present") |>
     filter(Event == "Long Run") |>
     filter(is.na(`Actual?`)) |>
     transmute(

@@ -9,8 +9,8 @@ fetch.attendance <- function (cache = FALSE) {
     return(read_csv(file.path))
   }
   columns <- data.frame(
-    name = c("Attendee", "Actual?", "Event", "Date", "Location", "Note", "Deficit/Surplus", "Last Event"),
-    type = c("c",        "c",       "c",     "D",    "c",        "c",    "d",               "D")
+    name = c("Attendee", "Actual?", "Event", "Date", "Location", "Note", "Date Joined", "Date Left", "Membership"),
+    type = c("c",        "c",       "c",     "D",    "c",        "c",    "D",           "D",         "c")
   )
   data <- read_sheet(
     "https://docs.google.com/spreadsheets/d/18VXvuxgnlPdGizA4prGbejZdAbWws7DwK_CE-u_qdzA/",
@@ -51,7 +51,7 @@ process.attendance <- function (data, roster, from) {
     )))
   data |>
     filter(!(Event %in% c("Board meeting", "Board Meeting"))) |>
-    select(!c(`Deficit/Surplus`, `Last Event`)) |>
+    select(!c(`Date Joined`, `Date Left`, Membership)) |>
     inner_join(roster, by = join_by(Attendee == Name)) |>
     filter(Date >= from & Date >= date_joined & (Date <= date_left | is.na(date_left))) |>
     filter(from < date_left | is.na(date_left)) |>
