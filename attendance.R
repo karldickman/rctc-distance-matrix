@@ -145,6 +145,7 @@ plot.attendance <- function (data, from, to) {
     ) +
     scale_fill_manual(values = c("black", "red"), na.value = "white") +
     theme(
+      axis.text.x = element_text(angle = -45, hjust = 0),
       axis.title.y = element_blank(),
       axis.text.y = element_blank(),
       axis.ticks.y = element_blank(),
