@@ -88,7 +88,7 @@ get.team.member.order <- function (data, roster, from) {
     mutate(effective_date_left = as.Date(ifelse(is.na(date_left), Sys.Date(), date_left))) |>
     mutate(days_of_membership = as.double(effective_date_left - effective_date_joined) + 1) |>
     mutate(attendance_per_year = total_attended / days_of_membership * 365.24) |>
-    arrange(-as.double(effective_date_joined), attendance_per_year, last_event) |>
+    arrange(-as.double(effective_date_joined), attendance_per_year, date_left, last_event) |>
     pull(Attendee)
 }
 
