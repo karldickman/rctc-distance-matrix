@@ -173,5 +173,6 @@ main <- function (argv = c()) {
   attendance <- bind_rows(attendance, not.on.team)
   attendance |>
     mutate(Attendee = factor(attendance$Attendee, levels = team.member.order)) |>
+    filter(!is.na(Attendee)) |>
     plot.attendance(from, to)
 }
