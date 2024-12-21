@@ -32,7 +32,7 @@ main <- function (argv = c()) {
     usage()
   }
   roster <- fetch.roster("--cache" %in% argv)
-  from <- as.Date("2023-09-04")
+  from <- as.Date("2023-01-01")
   fetch.attendance("--cache" %in% argv) |>
     process.attendance(roster, from) |>
     inverse_simpson()
