@@ -3,12 +3,16 @@ library(ggplot2)
 
 source("attendance.R")
 
-main <- function () {
+fetch.strength <- function () {
   fetch.attendance() |>
     filter(grepl("trength", Event)) |>
     filter(is.na(`Actual?`)) |>
     filter(Date > as.Date("2023-12-31")) |>
-    filter(!(Date %in% as.Date(c("2024-02-26", "2024-03-04")))) |>
+    filter(!(Date %in% as.Date(c("2024-02-26", "2024-03-04"))))
+}
+
+main <- function () {
+  fetch.strength() |>
     group_by(Date, Event) |>
     tally() |>
     rename(Attendance = n) |>
