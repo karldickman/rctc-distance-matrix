@@ -34,6 +34,7 @@ main <- function (argv = c()) {
   roster <- fetch.roster("--cache" %in% argv)
   from <- as.Date("2023-01-01")
   fetch.attendance("--cache" %in% argv) |>
+    filter(Membership == "Present") |>
     process.attendance(roster, from) |>
     inverse_simpson()
 }
