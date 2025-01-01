@@ -137,6 +137,7 @@ dates.not.on.team <- function (roster, from, to) {
 plot.attendance <- function (data, from, to) {
   ggplot(data, aes(Date, Attendee, fill = membership_status)) +
     geom_tile() +
+    geom_vline(xintercept = as.Date("2024-01-01")) +
     scale_x_date(
       limits = c(from, to + 1),
       expand = c(0, 0),
