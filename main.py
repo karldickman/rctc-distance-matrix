@@ -49,7 +49,7 @@ def main():
     argument_parser.add_argument("--destinations", type = str, default = "destinations.csv", help = "The CSV file containing the destinations and their coordinates")
     arguments = argument_parser.parse_args()
     travel_date = datetime.fromisoformat(arguments.travel_date)
-    arrival_time = datetime(travel_date.year, travel_date.month, travel_date.day, 8)
+    arrival_time = datetime(travel_date.year, travel_date.month, travel_date.day, 8) # TODO make configurable
     if len(arguments.addresses) > 0:
         origins = DataFrame({ "address": arguments.addresses })
     else:
