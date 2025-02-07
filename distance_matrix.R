@@ -57,11 +57,13 @@ main <- function(args = c()) {
   quartiles <- data |>
     group_by(destination) |>
     summarise(
-      median_duration_min = median(duration_min),
+      first_quartile = quantile(duration_min, 0.25),
+      median = median(duration_min),
       third_quartile = quantile(duration_min, 0.75),
-      max_duration_min = max(duration_min)
+      max = max(duration_min)
     ) |>
-    arrange(median_duration_min, third_quartile, max_duration_min)
+    arrange(median, third_quartile, max)
+  print(quartiles)
   data$destination <- factor(data$destination, levels = quartiles$destination)
   data |>
     distance.matrix.box.plot() +
