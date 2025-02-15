@@ -13,13 +13,13 @@ fetch.strength <- function () {
 
 strength.experience <- function () {
   strength <- fetch.strength() |>
-    select(!c(`Actual?`, Event, Location, Note, `Date Joined`, `Date Left`, Membership))
+    select(Attendee, Date)
   roster <- fetch.roster() |>
     group_by(Name) |>
-    summarise(date_joined = min(`Date joined`))
+    summarise(date_joined = min(From))
   start.date <- as.Date("2024-01-01")
   strength |>
-    inner_join(select(strength, c(Attendee, Date)), join_by(Attendee == Attendee), relationship = "many-to-many") |>
+    inner_join(select(strength, c(Attendee, Date)), join_by(Attendee), relationship = "many-to-many") |>
     filter(Date.y <= Date.x) |>
     rename(Date = Date.x) |>
     group_by(Attendee, Date) |>

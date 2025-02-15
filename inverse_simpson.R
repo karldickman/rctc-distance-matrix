@@ -33,6 +33,6 @@ main <- function (argv = c()) {
   }
   from <- as.Date("2022-01-01")
   fetch.attendance("--cache" %in% argv) |>
-    filter(Date >= from & Membership == "Present") |>
+    filter(Date >= from & !is.na(`Contemporary status`)) |>
     inverse_simpson()
 }

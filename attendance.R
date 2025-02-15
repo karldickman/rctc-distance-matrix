@@ -9,14 +9,15 @@ fetch.attendance <- function (cache = FALSE) {
     return(read_csv(file.path))
   }
   columns <- data.frame(
-    name = c("Attendee", "Actual?", "Event", "Date", "Location", "Note", "Date Joined", "Date Left", "Membership"),
-    type = c("c",        "c",       "c",     "D",    "c",        "c",    "D",           "D",         "c")
+    name = c("Attendee", "Actual?", "Event", "Date", "Location", "Note", "From", "To", "Ever a member?", "Contemporary status"),
+    type = c("c",        "c",       "c",     "D",    "c",        "c",    "D",    "D",  "l",              "c")
   )
   data <- read_sheet(
     "https://docs.google.com/spreadsheets/d/18VXvuxgnlPdGizA4prGbejZdAbWws7DwK_CE-u_qdzA/",
     "Attendance",
     col_types = paste(columns$type, collapse = "")
-  )
+  ) |>
+    mutate(`Contemporary status` = ifelse(`Contemporary status` == "#N/A", NA, `Contemporary status`))
   write.csv(data, file.path, row.names = FALSE)
   data
 }
@@ -27,117 +28,113 @@ fetch.roster <- function (cache = FALSE) {
     return(read_csv(file.path))
   }
   columns <- data.frame(
-    name = c("Name", "Slack status", "Status", "Required?", "Date joined", "Date left", "From", "To", "Days", "Required", "Attended", "RSVPed", "Total days", "Events/day", "Events/week", "Events/month", "Deficit/Surplus", "Last event", "Last reach-out", "Monday Strength", "Wednesday Strength", "Strength Average", "Duniwednesday", "Open Gym", "Foodie Friday", "Team Race", "Social", "Long Run", "Recorded from", "Days not recorded"),
-    type = c("c",    "c",            "c",       "l",        "D",           "D",         "D",    "D",  "d",    "d",        "d",        "d",      "d",          "d",          "d",           "d",            "d",               "D",          "D",              "d",               "d",                  "d",                "d",             "d",        "d",             "d",         "d",      "d",        "D",             "d")
+    name = c("Name", "Slack status", "Status", "From", "To", "Required?", "Calc attendance from", "Calc attendance to", "Days", "Required", "Attended", "RSVPed", "Total days", "Events/day", "Events/week", "Events/month", "Deficit/Surplus", "Last event", "Last reach-out", "Monday Strength", "Wednesday Strength", "Strength Average", "Duniwednesday", "Open Gym", "Foodie Friday", "Team Race", "Social", "Long Run", "Recorded from", "Days not recorded"),
+    type = c("c",    "c",            "c",       "D",    "D", "l",         "D",                    "D",                  "d",    "d",        "d",        "d",      "d",          "d",          "d",           "d",            "d",               "D",          "D",              "d",               "d",                  "d",                "d",             "d",        "d",             "d",         "d",      "d",        "D",             "d")
   )
   data <- read_sheet(
     "https://docs.google.com/spreadsheets/d/18VXvuxgnlPdGizA4prGbejZdAbWws7DwK_CE-u_qdzA/",
     "Roster",
     col_types = paste(columns$type, collapse = "")
-  ) |>
-    select(!`Last event`)
+  )
   write.csv(data, file.path, row.names = FALSE)
   data
 }
 
-process.attendance <- function (data, roster, from) {
-  roster <- roster |>
-    group_by(Name) |>
-    summarise(date_joined = min(`Date joined`), date_left = max(`Date left`)) |>
-    mutate(effective_date_joined = as.Date(ifelse(
-      date_joined < from,
-      from,
-      date_joined
-    )))
+process.attendance <- function (data, roster, from_date) {
+  dates_left <- roster |>
+    group_by(name) |>
+    summarise(date_left = max(to))
   data |>
-    filter(!(Event %in% c("Board meeting", "Board Meeting"))) |>
-    select(!c(`Date Joined`, `Date Left`, Membership)) |>
-    inner_join(roster, by = join_by(Attendee == Name)) |>
-    filter(Date >= from & Date >= date_joined & (Date <= date_left | is.na(date_left))) |>
-    filter(from < date_left | is.na(date_left)) |>
     filter(is.na(`Actual?`)) |>
-    mutate(membership_status = ifelse(is.na(date_left), "Current member", "Departed"))
+    filter(`Ever a member?`) |>
+    transmute(name = Attendee, event = Event, date = Date, contemporary_status = `Contemporary status`) |>
+    filter(date >= from_date) |>
+    filter(!(event %in% c("Board meeting", "Board Meeting"))) |>
+    left_join(dates_left, by = join_by(name)) |>
+    mutate(current_status = ifelse(is.na(date_left), "Current member", "Departed"))
 }
 
-get.team.member.order <- function (data, roster, from) {
-  totals <- data |>
-    group_by(Attendee) |>
+get.team.member.order <- function (data, roster, from_date) {
+  # Numerator: number of practices attended
+  total.attendance <- data |>
+    filter(contemporary_status == "Member") |>
+    group_by(name) |>
     summarise(
       total_attended = n(),
-      last_event = max(Date),
-      effective_date_joined = min(effective_date_joined),
-      date_left = max(date_left)
+      last_event = max(date)
     )
-  never.attended <- roster |>
-    filter(!(Status %in% c("Satellite", "Pause"))) |>
-    filter(`Date left` >= from) |>
-    left_join(data, by = join_by(Name == Attendee)) |>
-    filter(is.na(Event) | Date > `Date left`) |>
-    transmute(
-      Attendee = Name,
-      effective_date_joined = as.Date(ifelse(
-        `Date joined` < from,
-        from,
-        `Date joined`
-      )),
-      date_left = `Date left`,
-      total_attended = 0
+  # Denominator: number of days of membership
+  membership.dates <- roster |>
+    transmute(name, membership_status, date_joined = from, date_left = as.Date(ifelse(is.na(to), Sys.Date() + 1, to))) |>
+    mutate(effective_date_joined = as.Date(ifelse(date_joined < from_date, from_date, date_joined)))
+  duration.of.membership <- membership.dates |>
+    filter(membership_status == "Member") |>
+    mutate(days = ifelse(
+      from_date < date_left,
+      as.numeric(date_left - effective_date_joined + 1),
+      0
+    )) |>
+    group_by(name) |>
+    summarise(days_of_membership = sum(days))
+  membership.dates <- membership.dates |>
+    group_by(name) |>
+    summarise(
+      date_joined = min(date_joined),
+      date_left = max(date_left),
+      effective_date_joined = min(effective_date_joined)
     )
-  totals |>
-    bind_rows(never.attended) |>
-    mutate(effective_date_left = as.Date(ifelse(is.na(date_left), Sys.Date(), date_left))) |>
-    mutate(days_of_membership = as.double(effective_date_left - effective_date_joined) + 1) |>
-    mutate(attendance_per_year = total_attended / days_of_membership * 365.24) |>
-    arrange(-as.double(effective_date_joined), attendance_per_year, date_left, last_event) |>
-    pull(Attendee)
+  # Additional criterion: join and departure dates
+  membership.dates |>
+    left_join(duration.of.membership, by = join_by(name)) |>
+    left_join(total.attendance, by = join_by(name)) |>
+    mutate(total_attended = ifelse(is.na(total_attended), 0, total_attended)) |>
+    mutate(attendance_per_year = ifelse(total_attended != 0, total_attended / days_of_membership, 0) * 365.24) |>
+    arrange(-as.double(effective_date_joined), attendance_per_year, date_left, last_event)
 }
 
-dates.not.on.team <- function (roster, from, to) {
-  had.pause <- roster |>
-    filter(Status == "Pause") |>
-    select(Name, `Date joined`) |>
-    inner_join(select(roster, Name, `Date left`), join_by(Name == Name)) |>
-    group_by(Name) |>
-    summarise(`Date joined` = min(`Date joined`), `Date left` = max(`Date left`))
-  had.no.pause <- roster |>
-    filter(!(Name %in% had.pause$Name))
-  roster <- bind_rows(had.no.pause, had.pause)
-  names <- c()
-  dates <- c()
-  reasons <- c()
-  # Had not joined team
-  had.not.joined.team <- roster|>
-    filter(`Date joined` >= from)
-  for (i in 1:nrow(had.not.joined.team)) {
-    row <- had.not.joined.team[i,]
-    dates.not.joined <- from:(row$`Date joined` - 1)
-    for (date in dates.not.joined) {
-      names <- c(names, row$Name)
-      dates <- c(dates, date)
-      reasons <- c(reasons, "not yet joined")
-    }
-  }
-  # Left team
-  left.team <- roster |>
-    filter(`Date left` >= from)
-  for (i in 1:nrow(left.team)) {
-    row <- left.team[i,]
-    dates.left <- row$`Date left`:to
-    for (date in dates.left) {
-      names <- c(names, row$Name)
-      dates <- c(dates, date)
-      reasons <- c(reasons, "left team")
-    }
-  }
-  # Combine joined and left
-  dates <- as.Date(dates)
-  tibble(Attendee = names, Date = dates, not_on_team_reason = reasons)
+expand.attendance.availability <- function (roster, from_date, to_date) {
+  roster <- roster |> filter(membership_status == "Member")
+  membership.date.ranges <- roster |>
+    group_by(name) |>
+    summarise(from = min(from), to = max(to))
+  repeat.members <- roster |>
+    group_by(name) |>
+    tally() |>
+    filter(n > 1) |>
+    inner_join(roster, by = join_by(name)) |>
+    select(!n)
+  membership.gaps <- repeat.members |>
+    inner_join(repeat.members, by = join_by(name), relationship = "many-to-many") |>
+    select(
+      name,
+      membership_status = membership_status.x,
+      from = from.x,
+      to = to.x,
+      next_membership_status = membership_status.y,
+      next_from = from.y,
+      next_to = to.y
+    ) |>
+    filter(from < next_from) |>
+    group_by(name, to) |>
+    summarise(next_from = min(next_from), .groups = "drop") |>
+    filter(to < next_from) |>
+    select(name, from = to, to = next_from)
+  dates <- tibble(date = seq(from_date, to_date, "days"))
+  before.or.after.membership <- dates |>
+    cross_join(membership.date.ranges) |>
+    filter(date < from | date >= to) |>
+    select(date, name)
+  during.gaps.in.membership <- dates |>
+    cross_join(membership.gaps) |>
+    filter(date >= from & date < to) |>
+    select(date, name)
+  bind_rows(before.or.after.membership, during.gaps.in.membership)
 }
 
 plot.attendance <- function (data, from, to) {
-  ggplot(data, aes(Date, Attendee, fill = membership_status)) +
+  ggplot(data, aes(date, name, fill = current_status)) +
     geom_tile() +
-    geom_vline(xintercept = as.Date("2024-01-01")) +
+    geom_vline(xintercept = as.Date("2024-01-01"), linetype = "dotted") +
     scale_x_date(
       limits = c(from, to + 1),
       expand = c(0, 0),
@@ -184,16 +181,25 @@ main <- function (argv = c()) {
     usage()
   }
   args <- parse_args(argv)
-  roster <- fetch.roster(args$cache)
   from <- args$from
   to <- Sys.Date()
-  not.on.team <- dates.not.on.team(roster, from, to)
-  attendance <- fetch.attendance("--cache" %in% argv) |>
+  roster <- fetch.roster(args$cache) |>
+    transmute(name = Name, membership_status = Status, from = From, to = To)
+  attendance.availability.per.date <- expand.attendance.availability(roster, from, to)
+  attendance <- fetch.attendance(args$cache) |>
     process.attendance(roster, from)
-  team.member.order <- get.team.member.order(attendance, roster, from)
-  attendance <- bind_rows(attendance, not.on.team)
+  team.member.order <- get.team.member.order(attendance, roster, from) |>
+    pull(name)
+  attendance <- attendance.availability.per.date |>
+    full_join(attendance, by = join_by(date, name))
+  event.count <- attendance |>
+    group_by(name) |>
+    summarise(n = sum(ifelse(is.na(event), 0, 1)))
+  attendance <- attendance |>
+    inner_join(event.count, by = join_by(name)) |>
+    filter(n > 0)
   attendance |>
-    mutate(Attendee = factor(attendance$Attendee, levels = team.member.order)) |>
-    filter(!is.na(Attendee)) |>
+    mutate(chr_name = name, name = factor(attendance$name, levels = team.member.order)) |>
+    filter(!is.na(name)) |>
     plot.attendance(from, to)
 }

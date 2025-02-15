@@ -8,8 +8,8 @@ source("distance_matrix.R")
 process.attendance <- function (attendance) {
   attendance |>
     filter(Date >= as.Date("2024-01-01")) |>
-    filter(Membership == "Present") |>
-    filter(Event == "Long Run") |>
+    filter(!is.na(`Contemporary status`)) |>
+    filter(Event == "Long Run" | Event == "Long run") |>
     filter(is.na(`Actual?`)) |>
     transmute(
       date = Date,
