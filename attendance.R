@@ -134,7 +134,7 @@ expand.attendance.availability <- function (roster, from_date, to_date) {
 plot.attendance <- function (data, from, to) {
   ggplot(data, aes(date, name, fill = current_status)) +
     geom_tile() +
-    geom_vline(xintercept = as.Date("2024-01-01"), linetype = "dotted") +
+    geom_vline(xintercept = as.Date("2023-12-31"), linetype = "dotted") +
     scale_x_date(
       limits = c(from, to + 1),
       expand = c(0, 0),
