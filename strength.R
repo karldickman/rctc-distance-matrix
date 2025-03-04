@@ -19,5 +19,6 @@ main <- function () {
     ggplot(aes(x = Date, y = Attendance, col = Event)) +
     geom_point() +
     geom_smooth() +
-    ggtitle("NLPT strength attendance over time")
+    ggtitle("NLPT strength attendance over time") +
+    theme(legend.position = "bottom")
 }
