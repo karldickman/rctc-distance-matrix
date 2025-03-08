@@ -13,12 +13,15 @@ fetch.strength <- function (cache = FALSE) {
 
 main <- function () {
   fetch.strength() |>
-    group_by(Date, Event) |>
+    group_by(Date, Event, Location) |>
     tally() |>
     rename(Attendance = n) |>
+    mutate(Event = substr(Event, 1, nchar(Event) - nchar(" Strength"))) |>
+    mutate(Event = paste(Event, Location)) |>
     ggplot(aes(x = Date, y = Attendance, col = Event)) +
     geom_point() +
-    geom_smooth() +
+    geom_smooth(se = F) +
+    geom_vline(xintercept = as.Date("2025-03-24"), linetype = "dashed") +
     ggtitle("NLPT strength attendance over time") +
     theme(legend.position = "bottom")
 }
