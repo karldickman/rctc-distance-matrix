@@ -3,8 +3,8 @@ library(ggplot2)
 
 source("attendance.R")
 
-fetch.strength <- function () {
-  fetch.attendance() |>
+fetch.strength <- function (cache = FALSE) {
+  fetch.attendance(cache) |>
     filter(grepl("trength", Event)) |>
     filter(is.na(`Actual?`)) |>
     filter(Date > as.Date("2023-12-31")) |>
