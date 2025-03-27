@@ -20,6 +20,7 @@ main <- function () {
     mutate(Event = paste(Event, Location)) |>
     ggplot(aes(x = Date, y = Attendance, col = Event)) +
     geom_vline(xintercept = as.Date("2025-03-24"), linetype = "dashed", alpha = 0.3) +
+    geom_hline(yintercept = c(16.5, 20.5), linetype = "dashed", alpha = 0.3) +
     geom_point() +
     geom_smooth(se = F) +
     ggtitle("NLPT strength attendance over time") +
