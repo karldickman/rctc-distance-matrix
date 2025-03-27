@@ -19,9 +19,9 @@ main <- function () {
     mutate(Event = substr(Event, 1, nchar(Event) - nchar(" Strength"))) |>
     mutate(Event = paste(Event, Location)) |>
     ggplot(aes(x = Date, y = Attendance, col = Event)) +
+    geom_vline(xintercept = as.Date("2025-03-24"), linetype = "dashed", alpha = 0.3) +
     geom_point() +
     geom_smooth(se = F) +
-    geom_vline(xintercept = as.Date("2025-03-24"), linetype = "dashed") +
     ggtitle("NLPT strength attendance over time") +
     theme(legend.position = "bottom")
 }
