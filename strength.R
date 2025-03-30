@@ -11,9 +11,9 @@ fetch.strength <- function (cache = FALSE) {
     filter(!(Date %in% as.Date(c("2024-02-26", "2024-03-04"))))
 }
 
-main <- function () {
+main <- function (argv = c()) {
   new.location.date <- as.Date("2025-03-24")
-  data <- fetch.strength() |>
+  data <- fetch.strength("--cache" %in% argv) |>
     mutate(Event = substr(Event, 1, nchar(Event) - nchar(" Strength")))
   total <- data |>
     group_by(Date, Event) |>
